@@ -2,11 +2,16 @@
 #define FIDDLE_H
 
 #include <mruby.h>
+#include <mruby/data.h>
+#include <mruby/class.h>
 #include <mruby/value.h>
 #include <mruby/array.h>
+#include <mruby/string.h>
 #include <mruby/variable.h>
 
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(_WIN32)
 #include <windows.h>

@@ -1,5 +1,11 @@
 #include "fiddle.h"
 
+struct RClass *cFiddle;
+struct RClass *cFiddleError;
+
+extern void mrb_fiddle_pointer_init(mrb_state *mrb);
+extern void mrb_fiddle_function_init(mrb_state *mrb);
+
 /*
  * call-seq: Fiddle.malloc(size)
  *
@@ -130,8 +136,6 @@ mrb_fiddle_value2ptr(mrb_state *mrb, mrb_value self)
 static void
 mrb_fiddle_init(mrb_state *mrb)
 {
-    struct RClass *fiddle;
-    struct RClass *fiddle_error;
     /*
      * Document-module: Fiddle
      *
@@ -151,7 +155,7 @@ mrb_fiddle_init(mrb_state *mrb)
      * Here we will use Fiddle::Function to wrap {floor(3) from
      * libm}[http://linux.die.net/man/3/floor]
      *
-     *	    require 'fiddle'
+     *	    require 'cFiddle'
      *
      *	    libm = Fiddle.dlopen('/lib/libm.so.6')
      *
@@ -165,246 +169,246 @@ mrb_fiddle_init(mrb_state *mrb)
      *
      *
      */
-    fiddle = mrb_define_module(mrb, "Fiddle");
+    cFiddle = mrb_define_module(mrb, "Fiddle");
 
     /*
      * Document-class: Fiddle::DLError
      *
      * standard dynamic load exception
      */
-    fiddle_error = mrb_define_class_under(mrb, fiddle, "DLError", mrb->eStandardError_class);
+    cFiddleError = mrb_define_class_under(mrb, cFiddle, "DLError", mrb->eStandardError_class);
 
     /* Document-const: TYPE_VOID
      *
      * C type - void
      */
-    mrb_define_const(mrb, fiddle, "TYPE_VOID",      mrb_fixnum_value(TYPE_VOID));
+    mrb_define_const(mrb, cFiddle, "TYPE_VOID",      mrb_fixnum_value(TYPE_VOID));
 
     /* Document-const: TYPE_VOIDP
      *
      * C type - void*
      */
-    mrb_define_const(mrb, fiddle, "TYPE_VOIDP",     mrb_fixnum_value(TYPE_VOIDP));
+    mrb_define_const(mrb, cFiddle, "TYPE_VOIDP",     mrb_fixnum_value(TYPE_VOIDP));
 
     /* Document-const: TYPE_CHAR
      *
      * C type - char
      */
-    mrb_define_const(mrb, fiddle, "TYPE_CHAR",      mrb_fixnum_value(TYPE_CHAR));
+    mrb_define_const(mrb, cFiddle, "TYPE_CHAR",      mrb_fixnum_value(TYPE_CHAR));
 
     /* Document-const: TYPE_SHORT
      *
      * C type - short
      */
-    mrb_define_const(mrb, fiddle, "TYPE_SHORT",     mrb_fixnum_value(TYPE_SHORT));
+    mrb_define_const(mrb, cFiddle, "TYPE_SHORT",     mrb_fixnum_value(TYPE_SHORT));
 
     /* Document-const: TYPE_INT
      *
      * C type - int
      */
-    mrb_define_const(mrb, fiddle, "TYPE_INT",       mrb_fixnum_value(TYPE_INT));
+    mrb_define_const(mrb, cFiddle, "TYPE_INT",       mrb_fixnum_value(TYPE_INT));
 
     /* Document-const: TYPE_LONG
      *
      * C type - long
      */
-    mrb_define_const(mrb, fiddle, "TYPE_LONG",      mrb_fixnum_value(TYPE_LONG));
+    mrb_define_const(mrb, cFiddle, "TYPE_LONG",      mrb_fixnum_value(TYPE_LONG));
 
 #if HAVE_LONG_LONG
     /* Document-const: TYPE_LONG_LONG
      *
      * C type - long long
      */
-    mrb_define_const(mrb, fiddle, "TYPE_LONG_LONG", mrb_fixnum_value(TYPE_LONG_LONG));
+    mrb_define_const(mrb, cFiddle, "TYPE_LONG_LONG", mrb_fixnum_value(TYPE_LONG_LONG));
 #endif
 
     /* Document-const: TYPE_FLOAT
      *
      * C type - float
      */
-    mrb_define_const(mrb, fiddle, "TYPE_FLOAT",     mrb_fixnum_value(TYPE_FLOAT));
+    mrb_define_const(mrb, cFiddle, "TYPE_FLOAT",     mrb_fixnum_value(TYPE_FLOAT));
 
     /* Document-const: TYPE_DOUBLE
      *
      * C type - double
      */
-    mrb_define_const(mrb, fiddle, "TYPE_DOUBLE",    mrb_fixnum_value(TYPE_DOUBLE));
+    mrb_define_const(mrb, cFiddle, "TYPE_DOUBLE",    mrb_fixnum_value(TYPE_DOUBLE));
 
     /* Document-const: ALIGN_VOIDP
      *
      * The alignment size of a void*
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_VOIDP", mrb_fixnum_value(ALIGN_VOIDP));
+    mrb_define_const(mrb, cFiddle, "ALIGN_VOIDP", mrb_fixnum_value(ALIGN_VOIDP));
 
     /* Document-const: ALIGN_CHAR
      *
      * The alignment size of a char
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_CHAR",  mrb_fixnum_value(ALIGN_CHAR));
+    mrb_define_const(mrb, cFiddle, "ALIGN_CHAR",  mrb_fixnum_value(ALIGN_CHAR));
 
     /* Document-const: ALIGN_SHORT
      *
      * The alignment size of a short
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_SHORT", mrb_fixnum_value(ALIGN_SHORT));
+    mrb_define_const(mrb, cFiddle, "ALIGN_SHORT", mrb_fixnum_value(ALIGN_SHORT));
 
     /* Document-const: ALIGN_INT
      *
      * The alignment size of an int
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_INT",   mrb_fixnum_value(ALIGN_INT));
+    mrb_define_const(mrb, cFiddle, "ALIGN_INT",   mrb_fixnum_value(ALIGN_INT));
 
     /* Document-const: ALIGN_LONG
      *
      * The alignment size of a long
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_LONG",  mrb_fixnum_value(ALIGN_LONG));
+    mrb_define_const(mrb, cFiddle, "ALIGN_LONG",  mrb_fixnum_value(ALIGN_LONG));
 
 #if HAVE_LONG_LONG
     /* Document-const: ALIGN_LONG_LONG
      *
      * The alignment size of a long long
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_LONG_LONG",  mrb_fixnum_value(ALIGN_LONG_LONG));
+    mrb_define_const(mrb, cFiddle, "ALIGN_LONG_LONG",  mrb_fixnum_value(ALIGN_LONG_LONG));
 #endif
 
     /* Document-const: ALIGN_FLOAT
      *
      * The alignment size of a float
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_FLOAT", mrb_fixnum_value(ALIGN_FLOAT));
+    mrb_define_const(mrb, cFiddle, "ALIGN_FLOAT", mrb_fixnum_value(ALIGN_FLOAT));
 
     /* Document-const: ALIGN_DOUBLE
      *
      * The alignment size of a double
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_DOUBLE",mrb_fixnum_value(ALIGN_DOUBLE));
+    mrb_define_const(mrb, cFiddle, "ALIGN_DOUBLE",mrb_fixnum_value(ALIGN_DOUBLE));
 
     /* Document-const: ALIGN_SIZE_T
      *
      * The alignment size of a size_t
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_SIZE_T", mrb_fixnum_value(ALIGN_OF(size_t)));
+    mrb_define_const(mrb, cFiddle, "ALIGN_SIZE_T", mrb_fixnum_value(ALIGN_OF(size_t)));
 
     /* Document-const: ALIGN_SSIZE_T
      *
      * The alignment size of a ssize_t
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_SSIZE_T", mrb_fixnum_value(ALIGN_OF(size_t))); /* same as size_t */
+    mrb_define_const(mrb, cFiddle, "ALIGN_SSIZE_T", mrb_fixnum_value(ALIGN_OF(size_t))); /* same as size_t */
 
     /* Document-const: ALIGN_PTRDIFF_T
      *
      * The alignment size of a ptrdiff_t
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_PTRDIFF_T", mrb_fixnum_value(ALIGN_OF(ptrdiff_t)));
+    mrb_define_const(mrb, cFiddle, "ALIGN_PTRDIFF_T", mrb_fixnum_value(ALIGN_OF(ptrdiff_t)));
 
     /* Document-const: ALIGN_INTPTR_T
      *
      * The alignment size of a intptr_t
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_INTPTR_T", mrb_fixnum_value(ALIGN_OF(intptr_t)));
+    mrb_define_const(mrb, cFiddle, "ALIGN_INTPTR_T", mrb_fixnum_value(ALIGN_OF(intptr_t)));
 
     /* Document-const: ALIGN_UINTPTR_T
      *
      * The alignment size of a uintptr_t
      */
-    mrb_define_const(mrb, fiddle, "ALIGN_UINTPTR_T", mrb_fixnum_value(ALIGN_OF(uintptr_t)));
+    mrb_define_const(mrb, cFiddle, "ALIGN_UINTPTR_T", mrb_fixnum_value(ALIGN_OF(uintptr_t)));
 
     /* Document-const: WINDOWS
      *
      * Returns a boolean regarding whether the host is WIN32
      */
 #if defined(_WIN32)
-    mrb_define_const(mrb, fiddle, "WINDOWS", mrb_true_value());
+    mrb_define_const(mrb, cFiddle, "WINDOWS", mrb_true_value());
 #else
-    mrb_define_const(mrb, fiddle, "WINDOWS", mrb_false_value());
+    mrb_define_const(mrb, cFiddle, "WINDOWS", mrb_false_value());
 #endif
 
     /* Document-const: SIZEOF_VOIDP
      *
      * size of a void*
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_VOIDP", mrb_fixnum_value(sizeof(void*)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_VOIDP", mrb_fixnum_value(sizeof(void*)));
 
     /* Document-const: SIZEOF_CHAR
      *
      * size of a char
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_CHAR",  mrb_fixnum_value(sizeof(char)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_CHAR",  mrb_fixnum_value(sizeof(char)));
 
     /* Document-const: SIZEOF_SHORT
      *
      * size of a short
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_SHORT", mrb_fixnum_value(sizeof(short)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_SHORT", mrb_fixnum_value(sizeof(short)));
 
     /* Document-const: SIZEOF_INT
      *
      * size of an int
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_INT",   mrb_fixnum_value(sizeof(int)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_INT",   mrb_fixnum_value(sizeof(int)));
 
     /* Document-const: SIZEOF_LONG
      *
      * size of a long
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_LONG",  mrb_fixnum_value(sizeof(long)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_LONG",  mrb_fixnum_value(sizeof(long)));
 
 #if HAVE_LONG_LONG
     /* Document-const: SIZEOF_LONG_LONG
      *
      * size of a long long
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_LONG_LONG",  mrb_fixnum_value(sizeof(LONG_LONG)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_LONG_LONG",  mrb_fixnum_value(sizeof(LONG_LONG)));
 #endif
 
     /* Document-const: SIZEOF_FLOAT
      *
      * size of a float
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_FLOAT", mrb_fixnum_value(sizeof(float)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_FLOAT", mrb_fixnum_value(sizeof(float)));
 
     /* Document-const: SIZEOF_DOUBLE
      *
      * size of a double
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_DOUBLE",mrb_fixnum_value(sizeof(double)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_DOUBLE",mrb_fixnum_value(sizeof(double)));
 
     /* Document-const: SIZEOF_SIZE_T
      *
      * size of a size_t
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_SIZE_T",  mrb_fixnum_value(sizeof(size_t)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_SIZE_T",  mrb_fixnum_value(sizeof(size_t)));
 
     /* Document-const: SIZEOF_SSIZE_T
      *
      * size of a ssize_t
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_SSIZE_T",  mrb_fixnum_value(sizeof(size_t))); /* same as size_t */
+    mrb_define_const(mrb, cFiddle, "SIZEOF_SSIZE_T",  mrb_fixnum_value(sizeof(size_t))); /* same as size_t */
 
     /* Document-const: SIZEOF_PTRDIFF_T
      *
      * size of a ptrdiff_t
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_PTRDIFF_T",  mrb_fixnum_value(sizeof(ptrdiff_t)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_PTRDIFF_T",  mrb_fixnum_value(sizeof(ptrdiff_t)));
 
     /* Document-const: SIZEOF_INTPTR_T
      *
      * size of a intptr_t
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_INTPTR_T",  mrb_fixnum_value(sizeof(intptr_t)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_INTPTR_T",  mrb_fixnum_value(sizeof(intptr_t)));
 
     /* Document-const: SIZEOF_UINTPTR_T
      *
      * size of a uintptr_t
      */
-    mrb_define_const(mrb, fiddle, "SIZEOF_UINTPTR_T",  mrb_fixnum_value(sizeof(uintptr_t)));
+    mrb_define_const(mrb, cFiddle, "SIZEOF_UINTPTR_T",  mrb_fixnum_value(sizeof(uintptr_t)));
 
     /* Document-const: RUBY_FREE
      *
      * Address of the ruby_xfree() function
      */
-    //mrb_define_const(mrb, fiddle, "RUBY_FREE", mrb_cptr_value(mrb, ruby_xfree));
+    //mrb_define_const(mrb, cFiddle, "RUBY_FREE", mrb_cptr_value(mrb, ruby_xfree));
 
     /* Document-const: BUILD_RUBY_PLATFORM
      *
@@ -412,19 +416,21 @@ mrb_fiddle_init(mrb_state *mrb)
      *
      * See also RUBY_PLATFORM
      */
-    //mrb_define_const(mrb, fiddle, "BUILD_RUBY_PLATFORM", rb_str_new2(RUBY_PLATFORM));
+    //mrb_define_const(mrb, cFiddle, "BUILD_RUBY_PLATFORM", rb_str_new2(RUBY_PLATFORM));
 
-    mrb_define_module_function(mrb, fiddle, "dlwrap", mrb_fiddle_value2ptr, MRB_ARGS_REQ(1));
-    mrb_define_module_function(mrb, fiddle, "dlunwrap", mrb_fiddle_ptr2value, MRB_ARGS_REQ(1));
-    mrb_define_module_function(mrb, fiddle, "malloc", mrb_fiddle_malloc, MRB_ARGS_REQ(1));
-    mrb_define_module_function(mrb, fiddle, "calloc", mrb_fiddle_calloc, MRB_ARGS_REQ(2));
-    mrb_define_module_function(mrb, fiddle, "realloc", mrb_fiddle_realloc, MRB_ARGS_REQ(2));
-    mrb_define_module_function(mrb, fiddle, "free", mrb_fiddle_free, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, cFiddle, "dlwrap", mrb_fiddle_value2ptr, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, cFiddle, "dlunwrap", mrb_fiddle_ptr2value, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, cFiddle, "malloc", mrb_fiddle_malloc, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, cFiddle, "calloc", mrb_fiddle_calloc, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, cFiddle, "realloc", mrb_fiddle_realloc, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, cFiddle, "free", mrb_fiddle_free, MRB_ARGS_REQ(1));
 }
 
 void
 mrb_mruby_fiddle_gem_init(mrb_state* mrb) {
     mrb_fiddle_init(mrb);
+    mrb_fiddle_pointer_init(mrb);
+    mrb_fiddle_function_init(mrb);
     mrb_gc_arena_restore(mrb, 0);
 }
 

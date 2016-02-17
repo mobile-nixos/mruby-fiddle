@@ -1,34 +1,16 @@
 #include "fiddle.h"
+#include "conversions.h"
 
-#ifdef PRIsVALUE
-# define RB_OBJ_CLASSNAME(obj) rb_obj_class(obj)
-# define RB_OBJ_STRING(obj) (obj)
-#else
-# define PRIsVALUE "s"
-# define RB_OBJ_CLASSNAME(obj) rb_obj_classname(obj)
-# define RB_OBJ_STRING(obj) StringValueCStr(obj)
-#endif
-
-mrb_value function;
-
-#define MAX_ARGS (SIZE_MAX / (sizeof(void *) + sizeof(fiddle_generic)) - 1)
-
-#define Check_Max_Args(name, len) \
-    if ((size_t)(len) < MAX_ARGS) { \
-	/* OK */ \
-    } \
-    else { \
-	rb_raise(rb_eTypeError, \
-		 name" is so large that it can cause integer overflow (%d)", \
-		 (len)); \
-    }
+struct RClass *cFunction;
+extern struct RClass *cFiddle;
+extern struct RClass *cPointer;
 
 static void
 mrb_function_free(mrb_state *mrb, void *p)
 {
     ffi_cif *ptr = p;
-    if (ptr->arg_types) mrb_free(ptr->arg_types);
-    mrb_free(ptr);
+    if (ptr->arg_types) mrb_free(mrb, ptr->arg_types);
+    mrb_free(mrb, ptr);
 }
 
 static const struct mrb_data_type function_data_type = {
@@ -36,8 +18,8 @@ static const struct mrb_data_type function_data_type = {
     mrb_function_free,
 };
 
-static mrb_value
-mrb_function_allocate(mrb_state *mrb, mrb_value klass)
+/*static mrb_value
+mrb_fiddle_func_allocate(mrb_state *mrb, mrb_value klass)
 {
     ffi_cif * cif;
     struct RData *data;
@@ -45,28 +27,30 @@ mrb_function_allocate(mrb_state *mrb, mrb_value klass)
     Data_Make_Struct(mrb, klass, ffi_cif, &function_data_type, cif, data);
 
     return mrb_obj_value(data);
-}
+}*/
 
 static mrb_value
-mrb_function_initialize(mrb_state *mrb, mrb_value self)
+mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
 {
     ffi_cif * cif;
     ffi_type **arg_types;
     ffi_status result;
-    mrb_value ptr, args, ret_type, abi, name;
+    mrb_value obj, ptr, args, ret_type, abi, name;
     mrb_int i, args_len;
+    struct RData *data;
+
+    Data_Make_Struct(mrb, mrb_class_ptr(klass), ffi_cif, &function_data_type, cif, data);
+    obj = mrb_obj_value(data);
 
     mrb_get_args(mrb, "oA|oiS", &ptr, &args, &ret_type, &abi, &name);
     if (mrb_nil_p(ret_type)) ret_type = mrb_fixnum_value(TYPE_VOID);
     if (mrb_nil_p(abi)) abi = mrb_fixnum_value(FFI_DEFAULT_ABI);
-    if (!mrb_nil_p(name)) mrb_iv_set(mrb, self, "@name", name);
+    if (!mrb_nil_p(name)) mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@name"), name);
 
-    mrb_iv_set(mrb, self, "@ptr", ptr);
-    mrb_iv_set(mrb, self, "@args", args);
-    mrb_iv_set(mrb, self, "@return_type", ret_type);
-    mrb_iv_set(mrb, self, "@abi", abi);
-
-    Data_Get_Struct(mrb, self, &function_data_type, cif);
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@ptr"), ptr);
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@args"), args);
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@return_type"), ret_type);
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@abi"), abi);
 
     args_len = mrb_ary_len(mrb, args);
 
@@ -74,7 +58,7 @@ mrb_function_initialize(mrb_state *mrb, mrb_value self)
 
     for (i = 0; i < args_len; i++) {
     	mrb_int type = mrb_fixnum(mrb_ary_entry(args, i));
-    	arg_types[i] = INT2FFI_TYPE(type);
+    	arg_types[i] = INT2FFI_TYPE(mrb, type);
     }
     arg_types[args_len] = NULL;
 
@@ -82,86 +66,72 @@ mrb_function_initialize(mrb_state *mrb, mrb_value self)
 	    cif,
 	    mrb_fixnum(abi),
 	    args_len,
-	    INT2FFI_TYPE(fixnum(ret_type)),
+	    INT2FFI_TYPE(mrb, mrb_fixnum(ret_type)),
 	    arg_types);
 
     if (result)
 	   mrb_raisef(mrb, E_RUNTIME_ERROR, "error creating CIF %d", result);
 
-    return self;
+    return obj;
 }
 
 static mrb_value
-mrb_function_call(mrb_state *mrb, mrb_value self)
+mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
 {
     ffi_cif * cif;
     fiddle_generic retval;
     fiddle_generic *generic_args;
     void **values;
-    mrb_value cfunc, types, pointer;
-    int i;
-    mrb_value alloc_buffer = 0;
-    struct *RClass fiddle;
+    mrb_value *argv, cfunc, types;
+    mrb_int i, argc, args_len;
 
-    cfunc    = mrb_iv_get(mrb, self, "@ptr");
-    types    = mrb_iv_get(mrb, self, "@args");
-    pointer = mrb_const_get(mrb, fiddle, rb_intern("Pointer"));
+    mrb_get_args(mrb, "*", &argv, &argc);
 
-    Check_Max_Args("number of arguments", argc);
-    if(argc != RARRAY_LENINT(types)) {
-	rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)",
-		argc, RARRAY_LENINT(types));
+    cfunc    = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@ptr"));
+    types    = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@args"));
+
+    args_len = mrb_ary_len(mrb, types);
+
+    if(argc != args_len) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for %d)",
+		      argc, args_len);
     }
 
-    TypedData_Get_Struct(self, ffi_cif, &function_data_type, cif);
+    Data_Get_Struct(mrb, self, &function_data_type, cif);
 
-    if (rb_safe_level() >= 1) {
-	for (i = 0; i < argc; i++) {
-	    mrb_value src = argv[i];
-	    if (OBJ_TAINTED(src)) {
-		rb_raise(rb_eSecurityError, "tainted parameter not allowed");
-	    }
-	}
-    }
-
-    generic_args = ALLOCV(alloc_buffer,
-	(size_t)(argc + 1) * sizeof(void *) + (size_t)argc * sizeof(fiddle_generic));
+    generic_args = mrb_malloc(mrb, (size_t)(argc + 1) * sizeof(void *) + (size_t)argc * sizeof(fiddle_generic));
     values = (void **)((char *)generic_args + (size_t)argc * sizeof(fiddle_generic));
 
     for (i = 0; i < argc; i++) {
-	mrb_value type = RARRAY_PTR(types)[i];
-	mrb_value src = argv[i];
+    	mrb_value type = mrb_ary_entry(types, i);
+    	mrb_value src = argv[i];
 
-	if(NUM2INT(type) == TYPE_VOIDP) {
-	    if(NIL_P(src)) {
-		src = INT2FIX(0);
-	    } else if(cPointer != CLASS_OF(src)) {
-		src = rb_funcall(cPointer, rb_intern("[]"), 1, src);
-	    }
-	    src = rb_Integer(src);
-	}
+    	if(mrb_fixnum(type) == TYPE_VOIDP) {
+    	    if(mrb_nil_p(src)) {
+                src = mrb_cptr_value(mrb, NULL);
+    	    } else if(mrb_obj_is_instance_of(mrb, src, cPointer)) {
+                src = mrb_funcall(mrb, mrb_obj_value(cPointer), "[]", 1, src);
+    	    }
+    	}
 
-	VALUE2GENERIC(NUM2INT(type), src, &generic_args[i]);
-	values[i] = (void *)&generic_args[i];
+    	VALUE2GENERIC(mrb, mrb_fixnum(type), src, &generic_args[i]);
+    	values[i] = (void *)&generic_args[i];
     }
     values[argc] = NULL;
 
-    ffi_call(cif, NUM2PTR(rb_Integer(cfunc)), &retval, values);
+    ffi_call(cif, mrb_cptr(cfunc), &retval, values);
 
-    rb_funcall(mFiddle, rb_intern("last_error="), 1, mrb_fixnum_value(errno));
+    mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
 #if defined(_WIN32)
-    rb_funcall(mFiddle, rb_intern("win32_last_error="), 1, mrb_fixnum_value(errno));
+    mrb_funcall(mrb, mrb_obj_value(cFiddle), "win32_last_error=", 1, mrb_fixnum_value(errno));
 #endif
 
-    ALLOCV_END(alloc_buffer);
-
-    return GENERIC2VALUE(rb_iv_get(self, "@return_type"), retval);
+    return GENERIC2VALUE(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@return_type")), retval);
 }
 
 void
-mrb_fiddle_function_init(mrb_state *mrb, struct RClass *fiddle)
+mrb_fiddle_function_init(mrb_state *mrb)
 {
-    struct RClass *function;
     /*
      * Document-class: Fiddle::Function
      *
@@ -196,37 +166,8 @@ mrb_fiddle_function_init(mrb_state *mrb, struct RClass *fiddle)
      *   f.abi == Fiddle::Function::DEFAULT
      *	    #=> true
      */
-    function = mrb_define_class_under(mrb, fiddle, "Function", mrb->object_class);
-
-    /*
-     * Document-const: DEFAULT
-     *
-     * Default ABI
-     *
-     */
-    mrb_define_const(mrb, function, "DEFAULT", mrb_fixnum_value(FFI_DEFAULT_ABI));
-
-#ifdef HAVE_CONST_FFI_STDCALL
-    /*
-     * Document-const: STDCALL
-     *
-     * FFI implementation of WIN32 stdcall convention
-     *
-     */
-    mrb_define_const(mrb, function, "STDCALL", mrb_fixnum_value(FFI_STDCALL));
-#endif
-
-    rb_define_alloc_func(function, allocate);
-
-    /*
-     * Document-method: call
-     *
-     * Calls the constructed Function, with +args+
-     *
-     * For an example see Fiddle::Function
-     *
-     */
-    mrb_define_method(mrb, function, "call", function_call, -1);
+    cFunction = mrb_define_class_under(mrb, cFiddle, "Function", mrb->object_class);
+    MRB_SET_INSTANCE_TT(cPointer, MRB_TT_DATA);
 
     /*
      * Document-method: new
@@ -239,6 +180,34 @@ mrb_fiddle_function_init(mrb_state *mrb, struct RClass *fiddle)
      * * +abi+ is the ABI of the function
      *
      */
-    mrb_define_method(mrb, function, "initialize", mrb_function_initialize, MRB_ARGS_ARG(2, 3));
+    mrb_define_class_method(mrb, cPointer, "new", mrb_fiddle_func_instance_new, MRB_ARGS_ARG(2, 3));
+
+    /*
+     * Document-const: DEFAULT
+     *
+     * Default ABI
+     *
+     */
+    mrb_define_const(mrb, cFunction, "DEFAULT", mrb_fixnum_value(FFI_DEFAULT_ABI));
+
+#ifdef HAVE_CONST_FFI_STDCALL
+    /*
+     * Document-const: STDCALL
+     *
+     * FFI implementation of WIN32 stdcall convention
+     *
+     */
+    mrb_define_const(mrb, cFunction, "STDCALL", mrb_fixnum_value(FFI_STDCALL));
+#endif
+
+    /*
+     * Document-method: call
+     *
+     * Calls the constructed Function, with +args+
+     *
+     * For an example see Fiddle::Function
+     *
+     */
+    mrb_define_method(mrb, cFunction, "call", mrb_fiddle_func_call, MRB_ARGS_ANY());
 }
 /* vim: set noet sws=4 sw=4: */
