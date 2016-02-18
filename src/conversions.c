@@ -37,10 +37,13 @@ int_to_ffi_type(mrb_state *mrb, int type)
       case TYPE_DOUBLE:
     	return &ffi_type_double;
       default:
-    	mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %d", type);
+    	mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %S", mrb_fixnum_value(type));
     }
     return &ffi_type_pointer;
 }
+
+extern void *
+mrb_fiddle_ptr_to_cptr(mrb_state *mrb, mrb_value self);
 
 void
 value_to_generic(mrb_state *mrb, int type, mrb_value src, fiddle_generic * dst)
@@ -49,7 +52,7 @@ value_to_generic(mrb_state *mrb, int type, mrb_value src, fiddle_generic * dst)
       case TYPE_VOID:
     	break;
       case TYPE_VOIDP:
-    	dst->pointer = mrb_cptr(src);
+    	dst->pointer = mrb_fiddle_ptr_to_cptr(mrb, src);
     	break;
       case TYPE_CHAR:
     	dst->schar = (signed char)mrb_int(mrb, src);
@@ -84,13 +87,13 @@ value_to_generic(mrb_state *mrb, int type, mrb_value src, fiddle_generic * dst)
     	break;
 #endif
       case TYPE_FLOAT:
-    	dst->ffloat = (float)mrb_float(src);
+    	dst->ffloat = (float)mrb_float(mrb_Float(mrb, src));
     	break;
       case TYPE_DOUBLE:
-    	dst->ddouble = mrb_float(src);
+    	dst->ddouble = mrb_float(mrb_Float(mrb, src));
     	break;
       default:
-	     mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %d", type);
+	     mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %S", mrb_fixnum_value(type));
     }
 }
 
@@ -132,7 +135,7 @@ generic_to_value(mrb_state *mrb, mrb_value rettype, fiddle_generic retval)
       case TYPE_DOUBLE:
     	return mrb_float_value(mrb, retval.ddouble);
       default:
-	     mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %d", type);
+	     mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %S", mrb_fixnum_value(type));
     }
 
     return mrb_nil_value();

@@ -234,6 +234,14 @@ mrb_fiddle_ptr_to_value(mrb_state *mrb, mrb_value self)
     return mrb_cptr_value(mrb, data->ptr);
 }
 
+void *
+mrb_fiddle_ptr_to_cptr(mrb_state *mrb, mrb_value self)
+{
+    struct ptr_data *data;
+    Data_Get_Struct(mrb, self, &fiddle_ptr_data_type, data);
+    return data->ptr;
+}
+
 /*
  * call-seq: ptr
  *

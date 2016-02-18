@@ -35,22 +35,20 @@ mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
     ffi_cif * cif;
     ffi_type **arg_types;
     ffi_status result;
-    mrb_value obj, ptr, args, ret_type, abi, name;
-    mrb_int i, args_len;
+    mrb_value obj, ptr, args, name;
+    mrb_int i, args_len, ret_type = TYPE_VOID, abi = FFI_DEFAULT_ABI;
     struct RData *data;
 
     Data_Make_Struct(mrb, mrb_class_ptr(klass), ffi_cif, &function_data_type, cif, data);
     obj = mrb_obj_value(data);
 
-    mrb_get_args(mrb, "oA|oiS", &ptr, &args, &ret_type, &abi, &name);
-    if (mrb_nil_p(ret_type)) ret_type = mrb_fixnum_value(TYPE_VOID);
-    if (mrb_nil_p(abi)) abi = mrb_fixnum_value(FFI_DEFAULT_ABI);
+    mrb_get_args(mrb, "oA|iiS", &ptr, &args, &ret_type, &abi, &name);
     if (!mrb_nil_p(name)) mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@name"), name);
 
     mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@ptr"), ptr);
     mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@args"), args);
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@return_type"), ret_type);
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@abi"), abi);
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@return_type"), mrb_fixnum_value(ret_type));
+    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@abi"), mrb_fixnum_value(abi));
 
     args_len = mrb_ary_len(mrb, args);
 
@@ -64,13 +62,13 @@ mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
 
     result = ffi_prep_cif (
 	    cif,
-	    mrb_fixnum(abi),
+	    abi,
 	    args_len,
-	    INT2FFI_TYPE(mrb, mrb_fixnum(ret_type)),
+	    INT2FFI_TYPE(mrb, ret_type),
 	    arg_types);
 
     if (result)
-	   mrb_raisef(mrb, E_RUNTIME_ERROR, "error creating CIF %d", result);
+	   mrb_raisef(mrb, E_RUNTIME_ERROR, "error creating CIF %S", mrb_fixnum_value(result));
 
     return obj;
 }
@@ -93,8 +91,8 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
     args_len = mrb_ary_len(mrb, types);
 
     if(argc != args_len) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for %d)",
-		      argc, args_len);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for %S)",
+		      mrb_fixnum_value(argc), mrb_fixnum_value(args_len));
     }
 
     Data_Get_Struct(mrb, self, &function_data_type, cif);
@@ -109,7 +107,7 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
     	if(mrb_fixnum(type) == TYPE_VOIDP) {
     	    if(mrb_nil_p(src)) {
                 src = mrb_cptr_value(mrb, NULL);
-    	    } else if(mrb_obj_is_instance_of(mrb, src, cPointer)) {
+    	    } else if(!mrb_obj_is_instance_of(mrb, src, cPointer)) {
                 src = mrb_funcall(mrb, mrb_obj_value(cPointer), "[]", 1, src);
     	    }
     	}
@@ -121,10 +119,10 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
 
     ffi_call(cif, mrb_cptr(cfunc), &retval, values);
 
-    mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
+/*    mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
 #if defined(_WIN32)
     mrb_funcall(mrb, mrb_obj_value(cFiddle), "win32_last_error=", 1, mrb_fixnum_value(errno));
-#endif
+#endif*/
 
     return GENERIC2VALUE(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@return_type")), retval);
 }
@@ -167,7 +165,7 @@ mrb_fiddle_function_init(mrb_state *mrb)
      *	    #=> true
      */
     cFunction = mrb_define_class_under(mrb, cFiddle, "Function", mrb->object_class);
-    MRB_SET_INSTANCE_TT(cPointer, MRB_TT_DATA);
+    MRB_SET_INSTANCE_TT(cFunction, MRB_TT_DATA);
 
     /*
      * Document-method: new
@@ -180,7 +178,7 @@ mrb_fiddle_function_init(mrb_state *mrb)
      * * +abi+ is the ABI of the function
      *
      */
-    mrb_define_class_method(mrb, cPointer, "new", mrb_fiddle_func_instance_new, MRB_ARGS_ARG(2, 3));
+    mrb_define_class_method(mrb, cFunction, "new", mrb_fiddle_func_instance_new, MRB_ARGS_ARG(2, 3));
 
     /*
      * Document-const: DEFAULT

@@ -3,11 +3,14 @@
 
 #include <mruby.h>
 #include <mruby/data.h>
+#include <mruby/proc.h>
 #include <mruby/class.h>
 #include <mruby/value.h>
 #include <mruby/array.h>
+#include <mruby/error.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+
 
 #include <errno.h>
 #include <stdlib.h>

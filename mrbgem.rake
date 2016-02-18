@@ -3,13 +3,16 @@ MRuby::Gem::Specification.new('mruby-fiddle') do |spec|
   spec.author  = 'Xiao peng'
 
   # Add compile flags
-  # spec.cc.flags << ''
+  spec.cc.flags << '-DHAVE_DLFCN_H -DHAVE_DLERROR'
 
   # Add cflags to all
   spec.mruby.cc.flags << '-g'
 
   # Add libraries
   spec.linker.libraries << ['dl', 'ffi']
+
+  # Add dependency
+  spec.add_dependency('mruby-error')
 
   # Default build files
   #spec.rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
