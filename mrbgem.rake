@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-fiddle') do |spec|
   spec.author  = 'Xiao peng'
 
   # Add compile flags
-  spec.cc.flags << '-DHAVE_DLFCN_H -DHAVE_DLERROR'
+  spec.cc.flags << '-g -DHAVE_DLFCN_H -DHAVE_DLERROR -DUSE_FFI_CLOSURE_ALLOC'
 
   # Add cflags to all
   spec.mruby.cc.flags << '-g'

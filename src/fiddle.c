@@ -6,6 +6,7 @@ struct RClass *cFiddleError;
 extern void mrb_fiddle_pointer_init(mrb_state *mrb);
 extern void mrb_fiddle_function_init(mrb_state *mrb);
 extern void mrb_fiddle_handle_init(mrb_state *mrb);
+extern void mrb_fiddle_closure_init(mrb_state *mrb);
 
 /*
  * call-seq: Fiddle.malloc(size)
@@ -433,6 +434,7 @@ mrb_mruby_fiddle_gem_init(mrb_state* mrb) {
     mrb_fiddle_pointer_init(mrb);
     mrb_fiddle_function_init(mrb);
     mrb_fiddle_handle_init(mrb);
+    mrb_fiddle_closure_init(mrb);
     mrb_gc_arena_restore(mrb, 0);
 }
 

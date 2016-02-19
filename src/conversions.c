@@ -67,30 +67,30 @@ value_to_generic(mrb_state *mrb, int type, mrb_value src, fiddle_generic * dst)
     	dst->sshort = (signed short)mrb_int(mrb, src);
     	break;
       case TYPE_INT:
-    	dst->sint = mrb_int(mrb, src);
+    	dst->sint = (signed int)mrb_int(mrb, src);
     	break;
       case -TYPE_INT:
-    	dst->uint = mrb_int(mrb, src);
+    	dst->uint = (unsigned int)mrb_int(mrb, src);
     	break;
       case TYPE_LONG:
-    	dst->slong = mrb_int(mrb, src);
+    	dst->slong = (signed long)mrb_int(mrb, src);
     	break;
       case -TYPE_LONG:
-    	dst->ulong = mrb_int(mrb, src);
+    	dst->ulong = (unsigned long)mrb_int(mrb, src);
     	break;
 #if HAVE_LONG_LONG
       case TYPE_LONG_LONG:
-    	dst->slong_long = mrb_int(mrb, src);
+    	dst->slong_long = (signed LONG_LONG)mrb_int(mrb, src);
     	break;
       case -TYPE_LONG_LONG:
-    	dst->ulong_long = mrb_int(mrb, src);
+    	dst->ulong_long = (unsigned LONG_LONG)mrb_int(mrb, src);
     	break;
 #endif
       case TYPE_FLOAT:
     	dst->ffloat = (float)mrb_float(mrb_Float(mrb, src));
     	break;
       case TYPE_DOUBLE:
-    	dst->ddouble = mrb_float(mrb_Float(mrb, src));
+    	dst->ddouble = (double)mrb_float(mrb_Float(mrb, src));
     	break;
       default:
 	     mrb_raisef(mrb, E_RUNTIME_ERROR, "unknown type %S", mrb_fixnum_value(type));

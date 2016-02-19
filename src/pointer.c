@@ -310,6 +310,8 @@ mrb_fiddle_ptr_free_set(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+extern mrb_value
+mrb_fiddle_new_function(mrb_state *mrb, mrb_value ptr, mrb_value args, mrb_int ret_type);
 /*
  * call-seq: free => Fiddle::Function
  *
@@ -325,7 +327,7 @@ mrb_fiddle_ptr_free_get(mrb_state *mrb, mrb_value self)
     struct ptr_data *pdata;
     mrb_value address;
     mrb_value arg_types;
-    mrb_value ret_type;
+    mrb_int ret_type;
 
     Data_Get_Struct(mrb, self, &fiddle_ptr_data_type, pdata);
 
@@ -333,12 +335,11 @@ mrb_fiddle_ptr_free_get(mrb_state *mrb, mrb_value self)
         return mrb_nil_value();
 
     address = mrb_cptr_value(mrb, pdata->free);
-    ret_type = mrb_fixnum_value(TYPE_VOID);
+    ret_type = TYPE_VOID;
     arg_types = mrb_ary_new_capa(mrb, 1);
     mrb_ary_push(mrb, arg_types, mrb_fixnum_value(TYPE_VOIDP));
 
-    /*return mrb_fiddle_new_function(mrb, address, arg_types, ret_type);*/
-    return mrb_nil_value();
+    return mrb_fiddle_new_function(mrb, address, arg_types, ret_type);
 }
 
 /*

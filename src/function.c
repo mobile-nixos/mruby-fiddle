@@ -18,60 +18,86 @@ static const struct mrb_data_type function_data_type = {
     mrb_function_free,
 };
 
-/*static mrb_value
+static mrb_value
 mrb_fiddle_func_allocate(mrb_state *mrb, mrb_value klass)
 {
     ffi_cif * cif;
     struct RData *data;
 
-    Data_Make_Struct(mrb, klass, ffi_cif, &function_data_type, cif, data);
+    Data_Make_Struct(mrb, mrb_class_ptr(klass), ffi_cif, &function_data_type, cif, data);
 
     return mrb_obj_value(data);
-}*/
+}
 
 static mrb_value
-mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
+mrb_fiddle_new_function_full(mrb_state *mrb, mrb_value self, mrb_value ptr, mrb_value args,
+    mrb_int ret_type, mrb_int abi, mrb_value name)
 {
     ffi_cif * cif;
     ffi_type **arg_types;
     ffi_status result;
-    mrb_value obj, ptr, args, name;
-    mrb_int i, args_len, ret_type = TYPE_VOID, abi = FFI_DEFAULT_ABI;
-    struct RData *data;
+    mrb_int i, args_len;
 
-    Data_Make_Struct(mrb, mrb_class_ptr(klass), ffi_cif, &function_data_type, cif, data);
-    obj = mrb_obj_value(data);
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@ptr"), ptr);
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@args"), args);
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@return_type"), mrb_fixnum_value(ret_type));
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@abi"), mrb_fixnum_value(abi));
 
-    mrb_get_args(mrb, "oA|iiS", &ptr, &args, &ret_type, &abi, &name);
-    if (!mrb_nil_p(name)) mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@name"), name);
-
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@ptr"), ptr);
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@args"), args);
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@return_type"), mrb_fixnum_value(ret_type));
-    mrb_iv_set(mrb, obj, mrb_intern_lit(mrb, "@abi"), mrb_fixnum_value(abi));
+    Data_Get_Struct(mrb, self, &function_data_type, cif);
 
     args_len = mrb_ary_len(mrb, args);
 
     arg_types = mrb_calloc(mrb, args_len + 1, sizeof(ffi_type *));
 
     for (i = 0; i < args_len; i++) {
-    	mrb_int type = mrb_fixnum(mrb_ary_entry(args, i));
-    	arg_types[i] = INT2FFI_TYPE(mrb, type);
+        mrb_int type = mrb_fixnum(mrb_ary_entry(args, i));
+        arg_types[i] = INT2FFI_TYPE(mrb, type);
     }
     arg_types[args_len] = NULL;
 
     result = ffi_prep_cif (
-	    cif,
-	    abi,
-	    args_len,
-	    INT2FFI_TYPE(mrb, ret_type),
-	    arg_types);
+        cif,
+        abi,
+        args_len,
+        INT2FFI_TYPE(mrb, ret_type),
+        arg_types);
 
     if (result)
-	   mrb_raisef(mrb, E_RUNTIME_ERROR, "error creating CIF %S", mrb_fixnum_value(result));
+       mrb_raisef(mrb, E_RUNTIME_ERROR, "error creating CIF %S", mrb_fixnum_value(result));
 
-    return obj;
+    return self;
 }
+
+mrb_value
+mrb_fiddle_new_function(mrb_state *mrb, mrb_value ptr, mrb_value args, mrb_int ret_type)
+{
+    mrb_value self;
+
+    self = mrb_fiddle_func_allocate(mrb, mrb_obj_value(cFunction));
+    return mrb_fiddle_new_function_full(mrb, self, ptr, args, ret_type, FFI_DEFAULT_ABI, mrb_nil_value());
+}
+
+static mrb_value
+mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
+{
+    mrb_value self;
+
+    mrb_value ptr, args, name;
+    mrb_int ret_type = TYPE_VOID, abi = FFI_DEFAULT_ABI;
+
+    self = mrb_fiddle_func_allocate(mrb, klass);
+
+    mrb_get_args(mrb, "oA|iiS", &ptr, &args, &ret_type, &abi, &name);
+    if (!mrb_nil_p(name)) mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@name"), name);
+
+    if (mrb_respond_to(mrb, ptr, mrb_intern_lit(mrb, "to_value"))) {
+        ptr = mrb_funcall(mrb, ptr, "to_value", 0, NULL);
+    }
+
+    return mrb_fiddle_new_function_full(mrb, self, ptr, args, ret_type, abi, name);
+}
+
+
 
 static mrb_value
 mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
