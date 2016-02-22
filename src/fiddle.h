@@ -54,6 +54,8 @@
 #include <ffi.h>
 #endif
 
+#include "config.h"
+
 #if HAVE_LONG_LONG
 # if SIZEOF_LONG_LONG == 8
 #   define ffi_type_slong_long ffi_type_sint64

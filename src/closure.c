@@ -160,32 +160,8 @@ mrb_fiddle_closure_callback(ffi_cif *cif, void *resp, void **args, void *ctx)
 }
 
 static mrb_value
-mrb_fiddle_closure_allocate(mrb_state *mrb, mrb_value klass)
+mrb_fiddle_closure_initialize(mrb_state *mrb, mrb_value self)
 {
-    fiddle_closure * closure;
-    struct RData *data;
-    mrb_value obj;
-
-    Data_Make_Struct(mrb, mrb_class_ptr(klass), fiddle_closure,
-	    &closure_data_type, closure, data);
-
-    obj = mrb_obj_value(data);
-
-    closure->mrb = mrb;
-#if USE_FFI_CLOSURE_ALLOC
-    closure->pcl = ffi_closure_alloc(sizeof(ffi_closure), &closure->code);
-#else
-    closure->pcl = mmap(NULL, sizeof(ffi_closure), PROT_READ | PROT_WRITE,
-        MAP_ANON | MAP_PRIVATE, -1, 0);
-#endif
-
-    return obj;
-}
-
-static mrb_value
-mrb_fiddle_closure_instance_new(mrb_state *mrb, mrb_value klass)
-{
-    mrb_value self;
     mrb_int ret, abi;
     mrb_value args;
     fiddle_closure * cl;
@@ -194,7 +170,22 @@ mrb_fiddle_closure_instance_new(mrb_state *mrb, mrb_value klass)
     ffi_status result;
     mrb_int i, argc;
 
-    self = mrb_fiddle_closure_allocate(mrb, klass);
+    cl = (fiddle_closure *)DATA_PTR(self);
+    if (cl) {
+        fiddle_closure_dealloc(mrb, cl);
+    }
+    DATA_TYPE(self) = &closure_data_type;
+    DATA_PTR(self) = NULL;
+
+    cl = mrb_malloc(mrb, sizeof(fiddle_closure));
+    cl->mrb = mrb;
+#if USE_FFI_CLOSURE_ALLOC
+    cl->pcl = ffi_closure_alloc(sizeof(ffi_closure), &cl->code);
+#else
+    cl->pcl = mmap(NULL, sizeof(ffi_closure), PROT_READ | PROT_WRITE,
+        MAP_ANON | MAP_PRIVATE, -1, 0);
+#endif
+    DATA_PTR(self) = cl;
 
     if (2 == mrb_get_args(mrb, "iA|i", &ret, &args, &abi))
     	abi = FFI_DEFAULT_ABI;
@@ -202,8 +193,6 @@ mrb_fiddle_closure_instance_new(mrb_state *mrb, mrb_value klass)
     //Check_Type(args, T_ARRAY);
 
     argc = mrb_ary_len(mrb, args);
-
-    Data_Get_Struct(mrb, self, &closure_data_type, cl);
 
     cl->argv = (ffi_type **)mrb_calloc(mrb, argc + 1, sizeof(ffi_type *));
 
@@ -303,7 +292,7 @@ mrb_fiddle_closure_init(mrb_state *mrb)
      * If there is an error in preparing the ffi_cif or ffi_prep_closure,
      * then a RuntimeError will be raised.
      */
-    mrb_define_class_method(mrb, cClosure, "create", mrb_fiddle_closure_instance_new, MRB_ARGS_ARG(2, 1));
+    mrb_define_method(mrb, cClosure, "initialize", mrb_fiddle_closure_initialize, MRB_ARGS_ARG(2, 1));
 
     /*
      * Document-method: to_i

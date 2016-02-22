@@ -99,47 +99,6 @@ mrb_fiddle_ptr2cptr(mrb_state *mrb, mrb_value val)
     return ptr;
 }
 
-/*static mrb_value
-mrb_fiddle_ptr_s_allocate(mrb_state *mrb, mrb_value klass)
-{
-    mrb_value obj;
-    struct ptr_data *data;
-    struct RData *rdata;
-
-    Data_Make_Struct(mrb, mrb_class_ptr(klass), struct ptr_data, &fiddle_ptr_data_type, data, rdata);
-
-    obj = mrb_obj_value(rdata);
-    data->ptr = 0;
-    data->size = 0;
-    data->free = 0;
-
-    return obj;
-}*/
-
-/*
- * call-seq:
- *    Fiddle::Pointer.new(...)      => fiddle_cptr
- *
- * Creates a new object of Fiddle::Pointer class, then
- *  invokes that object's <code>initialize</code> method,
- *  passing it <i>args</i>. This is the method that ends
- *  up getting called whenever an object is constructed using
- *  `.new`.
- */
-/*static mrb_value
-mrb_fiddle_ptr_instance_new(mrb_state *mrb, mrb_value cv)
-{
-    mrb_value obj, blk;
-    mrb_value *argv;
-    mrb_int argc;
-
-    mrb_get_args(mrb, "*", &argv, &argc, &blk);
-    obj = mrb_fiddle_ptr_s_allocate(mrb, cv);
-    mrb_funcall_with_block(mrb, obj, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
-
-    return obj;
-}*/
-
 /*
  * call-seq:
  *    Fiddle::Pointer.new(address)      => fiddle_cptr
@@ -151,31 +110,36 @@ mrb_fiddle_ptr_instance_new(mrb_state *mrb, mrb_value cv)
  * +freefunc+ will be called when the instance is garbage collected.
  */
 static mrb_value
-mrb_fiddle_ptr_instance_new(mrb_state *mrb, mrb_value cv)
+mrb_fiddle_ptr_initialize(mrb_state *mrb, mrb_value self)
 {
-    mrb_value obj, ptr, sym;
-    mrb_int size = 0;
     struct ptr_data *data;
-    struct RData *rdata;
+    mrb_value ptr, sym;
+    mrb_int size = 0;
+    mrb_int argc;
 
-    Data_Make_Struct(mrb, mrb_class_ptr(cv), struct ptr_data, &fiddle_ptr_data_type, data, rdata);
+    data = (struct ptr_data *)DATA_PTR(self);
+    if (data) {
+        fiddle_ptr_free(mrb, data);
+    }
+    DATA_TYPE(self) = &fiddle_ptr_data_type;
+    DATA_PTR(self) = NULL;
 
-    obj = mrb_obj_value(rdata);
+    data = mrb_malloc(mrb, sizeof(struct ptr_data));
+    data->ptr = 0;
+    data->size = 0;
+    data->free = 0;
+    DATA_PTR(self) = data;
 
-    if(mrb_get_args(mrb, "|oio", &ptr, &size, &sym) > 0) {
+    ptr = sym = mrb_nil_value();
+    
+    argc = mrb_get_args(mrb, "|oio", &ptr, &size, &sym);
+    if(argc >= 1) {
         data->ptr = mrb_cptr(ptr);
-        data->size = (long)size;
-        data->free = get_freefunc(sym);
+        if (argc >= 2) data->size = (long)size;
+        if (argc >= 3) data->free = get_freefunc(sym);
     }
 
-    if (data->ptr) {
-    	if (data->ptr && data->free) {
-    	    /* Free previous memory. Use of inappropriate initialize may cause SEGV. */
-    	    (*(data->free))(data->ptr);
-    	}
-    }
-
-    return obj;
+    return self;
 }
 
 /*
@@ -429,7 +393,7 @@ mrb_fiddle_ptr_inspect(mrb_state *mrb, mrb_value self)
     char buf[256];
 
     Data_Get_Struct(mrb, self, &fiddle_ptr_data_type, data);
-    sprintf(buf, "#<Pointer:%p ptr=%p size=%ld free=%p>",
+    sprintf(buf, "#<%s:%p ptr=%p size=%ld free=%p>", mrb_obj_classname(mrb, self),
         data, data->ptr, data->size, data->free);
 
     return mrb_str_new_cstr(mrb, buf);
@@ -683,10 +647,11 @@ mrb_fiddle_pointer_init(mrb_state *mrb)
      */
     cPointer = mrb_define_class_under(mrb, cFiddle, "Pointer", mrb->object_class);
     MRB_SET_INSTANCE_TT(cPointer, MRB_TT_DATA);
-    mrb_define_class_method(mrb, cPointer, "new", mrb_fiddle_ptr_instance_new, MRB_ARGS_OPT(3));
     mrb_define_class_method(mrb, cPointer, "malloc", mrb_fiddle_ptr_s_malloc, MRB_ARGS_ARG(1, 1));
     mrb_define_class_method(mrb, cPointer, "to_ptr", mrb_fiddle_ptr_s_to_ptr, MRB_ARGS_REQ(1));
     mrb_define_class_method(mrb, cPointer, "[]", mrb_fiddle_ptr_s_to_ptr, MRB_ARGS_REQ(1));
+
+    mrb_define_method(mrb, cPointer, "initialize", mrb_fiddle_ptr_initialize, MRB_ARGS_OPT(3));
     mrb_define_method(mrb, cPointer, "free=", mrb_fiddle_ptr_free_set, MRB_ARGS_REQ(1));
     mrb_define_method(mrb, cPointer, "free",  mrb_fiddle_ptr_free_get, MRB_ARGS_NONE());
     mrb_define_method(mrb, cPointer, "to_i",  mrb_fiddle_ptr_to_i, MRB_ARGS_NONE());

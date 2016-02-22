@@ -19,12 +19,12 @@ static const struct mrb_data_type function_data_type = {
 };
 
 static mrb_value
-mrb_fiddle_func_allocate(mrb_state *mrb, mrb_value klass)
+mrb_fiddle_func_new(mrb_state *mrb)
 {
     ffi_cif * cif;
     struct RData *data;
 
-    Data_Make_Struct(mrb, mrb_class_ptr(klass), ffi_cif, &function_data_type, cif, data);
+    Data_Make_Struct(mrb, cFunction, ffi_cif, &function_data_type, cif, data);
 
     return mrb_obj_value(data);
 }
@@ -42,6 +42,7 @@ mrb_fiddle_new_function_full(mrb_state *mrb, mrb_value self, mrb_value ptr, mrb_
     mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@args"), args);
     mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@return_type"), mrb_fixnum_value(ret_type));
     mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@abi"), mrb_fixnum_value(abi));
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@name"), name);
 
     Data_Get_Struct(mrb, self, &function_data_type, cif);
 
@@ -73,22 +74,28 @@ mrb_fiddle_new_function(mrb_state *mrb, mrb_value ptr, mrb_value args, mrb_int r
 {
     mrb_value self;
 
-    self = mrb_fiddle_func_allocate(mrb, mrb_obj_value(cFunction));
+    self = mrb_fiddle_func_new(mrb);
     return mrb_fiddle_new_function_full(mrb, self, ptr, args, ret_type, FFI_DEFAULT_ABI, mrb_nil_value());
 }
 
 static mrb_value
-mrb_fiddle_func_instance_new(mrb_state *mrb, mrb_value klass)
+mrb_fiddle_func_initialize(mrb_state *mrb, mrb_value self)
 {
-    mrb_value self;
-
-    mrb_value ptr, args, name;
+    ffi_cif * cif;
+    mrb_value ptr, args, name = mrb_nil_value();
     mrb_int ret_type = TYPE_VOID, abi = FFI_DEFAULT_ABI;
 
-    self = mrb_fiddle_func_allocate(mrb, klass);
-
     mrb_get_args(mrb, "oA|iiS", &ptr, &args, &ret_type, &abi, &name);
-    if (!mrb_nil_p(name)) mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@name"), name);
+
+    cif = (ffi_cif *)DATA_PTR(self);
+    if (cif) {
+        mrb_function_free(mrb, cif);
+    }
+    DATA_TYPE(self) = &function_data_type;
+    DATA_PTR(self) = NULL;
+
+    cif = mrb_malloc(mrb, sizeof(ffi_cif));
+    DATA_PTR(self) = cif;
 
     if (mrb_respond_to(mrb, ptr, mrb_intern_lit(mrb, "to_value"))) {
         ptr = mrb_funcall(mrb, ptr, "to_value", 0, NULL);
@@ -145,10 +152,10 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
 
     ffi_call(cif, mrb_cptr(cfunc), &retval, values);
 
-/*    mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
+    mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
 #if defined(_WIN32)
     mrb_funcall(mrb, mrb_obj_value(cFiddle), "win32_last_error=", 1, mrb_fixnum_value(errno));
-#endif*/
+#endif
 
     return GENERIC2VALUE(mrb, mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@return_type")), retval);
 }
@@ -194,19 +201,6 @@ mrb_fiddle_function_init(mrb_state *mrb)
     MRB_SET_INSTANCE_TT(cFunction, MRB_TT_DATA);
 
     /*
-     * Document-method: new
-     * call-seq: new(ptr, args, ret_type, abi = DEFAULT)
-     *
-     * Constructs a Function object.
-     * * +ptr+ is a referenced function, of a Fiddle::Handle
-     * * +args+ is an Array of arguments, passed to the +ptr+ function
-     * * +ret_type+ is the return type of the function
-     * * +abi+ is the ABI of the function
-     *
-     */
-    mrb_define_class_method(mrb, cFunction, "new", mrb_fiddle_func_instance_new, MRB_ARGS_ARG(2, 3));
-
-    /*
      * Document-const: DEFAULT
      *
      * Default ABI
@@ -223,6 +217,19 @@ mrb_fiddle_function_init(mrb_state *mrb)
      */
     mrb_define_const(mrb, cFunction, "STDCALL", mrb_fixnum_value(FFI_STDCALL));
 #endif
+
+    /*
+     * Document-method: new
+     * call-seq: new(ptr, args, ret_type, abi = DEFAULT)
+     *
+     * Constructs a Function object.
+     * * +ptr+ is a referenced function, of a Fiddle::Handle
+     * * +args+ is an Array of arguments, passed to the +ptr+ function
+     * * +ret_type+ is the return type of the function
+     * * +abi+ is the ABI of the function
+     *
+     */
+    mrb_define_method(mrb, cFunction, "initialize", mrb_fiddle_func_initialize, MRB_ARGS_ARG(2, 3));
 
     /*
      * Document-method: call

@@ -83,13 +83,7 @@ mrb_fiddle_handle_close(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_fiddle_dop(mrb_state *mrb, mrb_value self)
-{
-    return mrb_nil_value();
-}
-
-static mrb_value
-mrb_fiddle_handle_s_allocate(mrb_state *mrb, struct RClass *klass)
+mrb_fiddle_handle_new(mrb_state *mrb, struct RClass *klass)
 {
     mrb_value obj;
     struct dl_handle *fiddle_handle;
@@ -108,7 +102,7 @@ mrb_fiddle_handle_s_allocate(mrb_state *mrb, struct RClass *klass)
 static mrb_value
 predefined_fiddle_handle(mrb_state *mrb, void *handle)
 {
-    mrb_value obj = mrb_fiddle_handle_s_allocate(mrb, cHandle);
+    mrb_value obj = mrb_fiddle_handle_new(mrb, cHandle);
     struct dl_handle *fiddle_handle = DATA_PTR(obj);
 
     fiddle_handle->ptr = handle;
@@ -133,23 +127,29 @@ predefined_fiddle_handle(mrb_state *mrb, void *handle)
  * functions, or ruby functions like +rb_str_new+.
  */
 static mrb_value
-mrb_fiddle_handle_instance_new(mrb_state *mrb, mrb_value cv)
+mrb_fiddle_handle_initialize(mrb_state *mrb, mrb_value self)
 {
     void *ptr;
     struct dl_handle *fiddle_handle;
-    struct RData *data;
-    mrb_value obj, lib;
-    mrb_int flag;
+    mrb_value lib = mrb_nil_value();
+    mrb_int flag = RTLD_LAZY | RTLD_GLOBAL;
     char  *clib;
     int   cflag;
     const char *err;
 
-    Data_Make_Struct(mrb, mrb_class_ptr(cv), struct dl_handle, &fiddle_handle_data_type, fiddle_handle, data);
+    fiddle_handle = (struct dl_handle *)DATA_PTR(self);
+    if (fiddle_handle) {
+        fiddle_handle_free(mrb, fiddle_handle);
+    }
 
-    obj = mrb_obj_value(data);
+    DATA_TYPE(self) = &fiddle_handle_data_type;
+    DATA_PTR(self) = NULL;
+
+    fiddle_handle = mrb_malloc(mrb, sizeof(struct dl_handle));
     fiddle_handle->ptr  = 0;
     fiddle_handle->open = 0;
     fiddle_handle->enable_close = 0;
+    DATA_PTR(self) = fiddle_handle;;
 
     switch( mrb_get_args(mrb, "|Si", &lib, &flag) ){
       case 0:
@@ -206,7 +206,7 @@ mrb_fiddle_handle_instance_new(mrb_state *mrb, mrb_value cv)
     fiddle_handle->open = 1;
     fiddle_handle->enable_close = 0;
 
-    return obj;
+    return self;
 }
 
 /*
@@ -426,7 +426,7 @@ mrb_fiddle_handle_init(mrb_state *mrb)
      */
     cHandle = mrb_define_class_under(mrb, cFiddle, "Handle", mrb->object_class);
     MRB_SET_INSTANCE_TT(cHandle, MRB_TT_DATA);
-    mrb_define_class_method(mrb, cHandle, "new", mrb_fiddle_handle_instance_new, MRB_ARGS_OPT(2));
+
     mrb_define_class_method(mrb, cHandle, "sym", mrb_fiddle_handle_s_sym, MRB_ARGS_REQ(1));
     mrb_define_class_method(mrb, cHandle, "[]", mrb_fiddle_handle_s_sym,  MRB_ARGS_REQ(1));
 
@@ -480,6 +480,7 @@ mrb_fiddle_handle_init(mrb_state *mrb)
      */
     mrb_define_const(mrb, cHandle, "RTLD_NOW",    mrb_fixnum_value(RTLD_NOW));
 
+    mrb_define_method(mrb, cHandle, "initialize", mrb_fiddle_handle_initialize, MRB_ARGS_OPT(2));
     mrb_define_method(mrb, cHandle, "to_i", mrb_fiddle_handle_to_i, MRB_ARGS_NONE());
     mrb_define_method(mrb, cHandle, "close", mrb_fiddle_handle_close, MRB_ARGS_NONE());
     mrb_define_method(mrb, cHandle, "sym",  mrb_fiddle_handle_sym, MRB_ARGS_REQ(1));
