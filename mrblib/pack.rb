@@ -15,17 +15,17 @@ module Fiddle
     }
 
     PACK_MAP = {
-      TYPE_VOIDP => ((SIZEOF_VOIDP == SIZEOF_LONG_LONG) ? "q" : "l!"),
+      TYPE_VOIDP => "q",
       TYPE_CHAR  => "c",
       TYPE_SHORT => "s!",
-      TYPE_INT   => "i!",
-      TYPE_LONG  => "l!",
+      TYPE_INT   => "l!",
+      TYPE_LONG  => "q",
       TYPE_FLOAT => "f",
       TYPE_DOUBLE => "d",
       -TYPE_CHAR  => "c",
       -TYPE_SHORT => "s!",
-      -TYPE_INT   => "i!",
-      -TYPE_LONG  => "l!",
+      -TYPE_INT   => "l!",
+      -TYPE_LONG  => "q",
     }
 
     SIZE_MAP = {

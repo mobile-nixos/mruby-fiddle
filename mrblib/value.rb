@@ -1,5 +1,3 @@
-#require 'fiddle'
-
 module Fiddle
   module ValueUtil #:nodoc: all
     def unsigned_value(val, ty)
@@ -9,9 +7,9 @@ module Fiddle
       when TYPE_SHORT
         [val].pack("s!").unpack("S!")[0]
       when TYPE_INT
-        [val].pack("i!").unpack("I!")[0]
-      when TYPE_LONG
         [val].pack("l!").unpack("L!")[0]
+      when TYPE_LONG
+        [val].pack("q").unpack("Q")[0]
       when TYPE_LONG_LONG
         [val].pack("q").unpack("Q")[0]
       else
@@ -26,9 +24,9 @@ module Fiddle
       when TYPE_SHORT
         [val].pack("S!").unpack("s!")[0]
       when TYPE_INT
-        [val].pack("I!").unpack("i!")[0]
-      when TYPE_LONG
         [val].pack("L!").unpack("l!")[0]
+      when TYPE_LONG
+        [val].pack("Q").unpack("q")[0]
       when TYPE_LONG_LONG
         [val].pack("Q").unpack("q")[0]
       else
@@ -60,22 +58,22 @@ module Fiddle
           return arg.to_i
         end
       when Function
-        if( block )
-          arg.bind_at_call(&block)
-          funcs.push(arg)
-        elsif !arg.bound?
-          raise(RuntimeError, "block must be given.")
-        end
-        return arg.to_i
+        # if( block )
+        #   arg.bind_at_call(&block)
+        #   funcs.push(arg)
+        # elsif !arg.bound?
+        #   raise(RuntimeError, "block must be given.")
+        # end
+        return arg.to_ptr.to_i
       when String
         if( ty.is_a?(Array) )
           return arg.unpack('C*')
         else
           case SIZEOF_VOIDP
           when SIZEOF_LONG
-            return [arg].pack("p").unpack("l!")[0]
+            return Pointer[arg].to_i
           when SIZEOF_LONG_LONG
-            return [arg].pack("p").unpack("q")[0]
+            return Pointer[arg].to_i
           else
             raise(RuntimeError, "sizeof(void*)?")
           end

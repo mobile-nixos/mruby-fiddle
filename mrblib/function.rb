@@ -10,8 +10,8 @@ module Fiddle
     attr_reader :name
 
     # The integer memory location of this function
-    # def to_i
-    #   ptr.to_i
-    # end
+    def to_ptr
+      Pointer.new(ptr)
+    end
   end
 end

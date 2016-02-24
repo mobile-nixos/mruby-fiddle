@@ -1,7 +1,3 @@
-#require 'fiddle.so'
-#require 'fiddle/function'
-#require 'fiddle/closure'
-
 module Fiddle
   if WINDOWS
     # Returns the last win32 +Error+ of the current executing +Thread+ or nil

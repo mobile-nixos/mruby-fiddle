@@ -1,7 +1,3 @@
-#require 'fiddle'
-#require 'fiddle/value'
-#require 'fiddle/pack'
-
 module Fiddle
   # C struct shell
   class CStruct
@@ -48,7 +44,25 @@ module Fiddle
     #   obj = MyStruct.allocate
     #
     def create(klass, types, members)
+      size = klass.entity_class.size(types)
       new_class = Class.new(klass){
+        define_singleton_method(:size) { size }
+        define_singleton_method(:malloc) { |*args|
+          addr = Fiddle.malloc(size)
+          s = new(addr)
+          if args.size > 0
+            if args[0].is_a? Hash
+              args.each do |arg|
+                s.send("#{arg[0]}=", arg[1])
+              end
+            else
+              args.each_with_index do |arg, idx|
+                s.send("[]=", idx, arg)
+              end
+            end
+          end
+          s
+        }
         define_method(:initialize){|addr|
           @entity = klass.entity_class.new(addr, types)
           @entity.assign_names(members)
@@ -59,17 +73,14 @@ module Fiddle
           define_method(name){ @entity[name] }
           define_method(name + "="){|val| @entity[name] = val }
         }
+        define_method("[]") { |idx|
+          @entry[idx]
+        }
+        define_method("[]=") { |idx, val|
+          @entity[idx] = val
+        }
       }
-      size = klass.entity_class.size(types)
-      new_class.module_eval(<<-EOS, __FILE__, __LINE__+1)
-        def new_class.size()
-          #{size}
-        end
-        def new_class.malloc()
-          addr = Fiddle.malloc(#{size})
-          new(addr)
-        end
-      EOS
+
       return new_class
     end
     module_function :create
@@ -149,7 +160,11 @@ module Fiddle
 
     # Fetch struct member +name+
     def [](name)
-      idx = @members.index(name)
+      if name.is_a? String or name.is_a? Symbol then
+        idx = @members.index(name.to_s)
+      else
+        idx = name
+      end
       if( idx.nil? )
         raise(ArgumentError, "no such member: #{name}")
       end
@@ -183,11 +198,16 @@ module Fiddle
 
     # Set struct member +name+, to value +val+
     def []=(name, val)
-      idx = @members.index(name)
+      if name.is_a? String or name.is_a? Symbol then
+        idx = @members.index(name.to_s)
+      else
+        idx = name
+      end
       if( idx.nil? )
         raise(ArgumentError, "no such member: #{name}")
       end
       ty  = @ctypes[idx]
+
       packer = Packer.new([ty])
       val = wrap_arg(val, ty, [])
       buff = packer.pack([val].flatten())

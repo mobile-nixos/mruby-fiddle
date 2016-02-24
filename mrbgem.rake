@@ -14,6 +14,18 @@ MRuby::Gem::Specification.new('mruby-fiddle') do |spec|
   # Add dependency
   spec.add_dependency('mruby-error')
 
+  spec.rbfiles = [
+      "#{dir}/mrblib/closure.rb",
+      "#{dir}/mrblib/function.rb",
+      "#{dir}/mrblib/fiddle.rb",
+      "#{dir}/mrblib/cparser.rb",
+      "#{dir}/mrblib/types.rb",
+      "#{dir}/mrblib/value.rb",
+      "#{dir}/mrblib/pack.rb",
+      "#{dir}/mrblib/struct.rb",
+      "#{dir}/mrblib/import.rb"
+  ]
+
   # Default build files
   #spec.rbfiles = Dir.glob("#{dir}/mrblib/*.rb")
   #spec.objs = Dir.glob("#{dir}/src/*.{c,cpp,m,asm,S}").map { |f| objfile(f.relative_path_from(dir).pathmap("#{build_dir}/%X")) }

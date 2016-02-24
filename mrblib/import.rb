@@ -1,7 +1,3 @@
-#require 'fiddle'
-#require 'fiddle/struct'
-#require 'fiddle/cparser'
-
 module Fiddle
 
   # Used internally by Fiddle::Importer
@@ -96,6 +92,8 @@ module Fiddle
       @type_alias[alias_type] = orig_type
     end
 
+    alias typedef typealias
+
     # Returns the sizeof +ty+, using Fiddle::Importer.parse_ctype to determine
     # the C type and the appropriate Fiddle constant.
     def sizeof(ty)
@@ -164,19 +162,8 @@ module Fiddle
       f = import_function(symname, ctype, argtype, opt[:call_type])
       name = symname.gsub(/@.+/,'')
       @func_map[name] = f
-      # define_method(name){|*args,&block| f.call(*args,&block)}
-      begin
-        /^(.+?):(\d+)/ =~ caller.first
-        file, line = $1, $2.to_i
-      rescue
-        file, line = __FILE__, __LINE__+3
-      end
-      module_eval(<<-EOS, file, line)
-        def #{name}(*args, &block)
-          @func_map['#{name}'].call(*args,&block)
-        end
-      EOS
-      module_function(name)
+      define_method(name){|*args,&block| f.call(*args,&block)}
+      module_function(name.to_sym)
       f
     end
 
@@ -192,19 +179,8 @@ module Fiddle
         raise(RuntimeError, "unknown callback type: #{h[:callback_type]}")
       end
       @func_map[name] = f
-      #define_method(name){|*args,&block| f.call(*args,&block)}
-      begin
-        /^(.+?):(\d+)/ =~ caller.first
-        file, line = $1, $2.to_i
-      rescue
-        file, line = __FILE__, __LINE__+3
-      end
-      module_eval(<<-EOS, file, line)
-        def #{name}(*args,&block)
-          @func_map['#{name}'].call(*args,&block)
-        end
-      EOS
-      module_function(name)
+      define_method(name){|*args, &block| f.call(*args, &block)}
+      module_function(name.to_sym)
       f
     end
 
@@ -290,8 +266,7 @@ module Fiddle
       if( !addr )
         raise(DLError, "cannot find the function: #{name}()")
       end
-      Function.new(addr, argtype, ctype, CALL_TYPE_TO_ABI[call_type],
-                   name: name)
+      Function.new(addr, argtype, ctype, CALL_TYPE_TO_ABI[call_type], name)
     end
 
     # Returns a new closure wrapper for the +name+ function.
@@ -305,10 +280,10 @@ module Fiddle
     def bind_function(name, ctype, argtype, call_type = nil, &block)
       abi = CALL_TYPE_TO_ABI[call_type]
       closure = Class.new(Fiddle::Closure) {
-        define_method(:call, block)
+        define_method(:call, &block)
       }.new(ctype, argtype, abi)
 
-      Function.new(closure, argtype, ctype, abi, name: name)
+      Function.new(closure, argtype, ctype, abi, name)
     end
   end
 end

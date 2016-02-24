@@ -131,10 +131,17 @@ mrb_fiddle_ptr_initialize(mrb_state *mrb, mrb_value self)
     DATA_PTR(self) = data;
 
     ptr = sym = mrb_nil_value();
-    
+
     argc = mrb_get_args(mrb, "|oio", &ptr, &size, &sym);
     if(argc >= 1) {
-        data->ptr = mrb_cptr(ptr);
+        if (mrb_fixnum_p(ptr)) {
+            data->ptr = (void *)mrb_fixnum(ptr);
+        } else if (mrb_cptr_p(ptr)){
+            data->ptr = mrb_cptr(ptr);
+        } else {
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "The argument must be Fixnum or C Pointer. type(%S)", mrb_fixnum_value(mrb_type(ptr)));
+        }
+
         if (argc >= 2) data->size = (long)size;
         if (argc >= 3) data->free = get_freefunc(sym);
     }
