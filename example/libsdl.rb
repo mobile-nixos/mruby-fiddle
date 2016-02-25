@@ -145,10 +145,14 @@ class Game
       end
       render
     end
+    event.destroy
     quit
   end
 
   def quit
+    @fill_rect.destroy
+    @outline_rect.destroy
+
     LibSDL.SDL_DestroyRenderer(@renderer)
     LibSDL.SDL_DestroyWindow(@window)
     LibSDL.SDL_Quit

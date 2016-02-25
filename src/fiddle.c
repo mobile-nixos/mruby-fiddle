@@ -7,6 +7,7 @@ extern void mrb_fiddle_pointer_init(mrb_state *mrb);
 extern void mrb_fiddle_function_init(mrb_state *mrb);
 extern void mrb_fiddle_handle_init(mrb_state *mrb);
 extern void mrb_fiddle_closure_init(mrb_state *mrb);
+extern void mrb_fiddle_memory_trace_init(mrb_state *mrb);
 
 /*
  * call-seq: Fiddle.malloc(size)
@@ -428,13 +429,18 @@ mrb_fiddle_init(mrb_state *mrb)
     mrb_define_module_function(mrb, cFiddle, "free", mrb_fiddle_free, MRB_ARGS_REQ(1));
 }
 
+extern void
+memory_report(void);
+
 void
 mrb_mruby_fiddle_gem_init(mrb_state* mrb) {
+    atexit(memory_report);
     mrb_fiddle_init(mrb);
     mrb_fiddle_pointer_init(mrb);
     mrb_fiddle_function_init(mrb);
     mrb_fiddle_handle_init(mrb);
     mrb_fiddle_closure_init(mrb);
+    mrb_fiddle_memory_trace_init(mrb);
     mrb_gc_arena_restore(mrb, 0);
 }
 

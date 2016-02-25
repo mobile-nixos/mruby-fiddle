@@ -67,6 +67,10 @@ module Fiddle
           @entity = klass.entity_class.new(addr, types)
           @entity.assign_names(members)
         }
+        define_method(:destroy) {
+          Fiddle.free @entity.to_value
+          @entry = nil
+        }
         define_method(:to_ptr){ @entity }
         define_method(:to_i){ @entity.to_i }
         members.each{|name|

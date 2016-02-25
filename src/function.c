@@ -152,6 +152,8 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
 
     ffi_call(cif, mrb_cptr(cfunc), &retval, values);
 
+    mrb_free(mrb, generic_args);
+
     mrb_funcall(mrb, mrb_obj_value(cFiddle), "last_error=", 1, mrb_fixnum_value(errno));
 #if defined(_WIN32)
     mrb_funcall(mrb, mrb_obj_value(cFiddle), "win32_last_error=", 1, mrb_fixnum_value(errno));

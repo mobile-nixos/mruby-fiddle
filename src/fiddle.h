@@ -90,5 +90,7 @@
 #define ALIGN_FLOAT  ALIGN_OF(float)
 #define ALIGN_DOUBLE ALIGN_OF(double)
 
+#include "memory.h"
+
 #endif
 /* vim: set noet sws=4 sw=4: */
