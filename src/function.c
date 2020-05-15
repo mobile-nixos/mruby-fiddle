@@ -46,7 +46,7 @@ mrb_fiddle_new_function_full(mrb_state *mrb, mrb_value self, mrb_value ptr, mrb_
 
     Data_Get_Struct(mrb, self, &function_data_type, cif);
 
-    args_len = mrb_ary_len(mrb, args);
+    args_len = RARRAY_LEN(args);
 
     arg_types = mrb_calloc(mrb, args_len + 1, sizeof(ffi_type *));
 
@@ -121,7 +121,7 @@ mrb_fiddle_func_call(mrb_state *mrb, mrb_value self)
     cfunc    = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@ptr"));
     types    = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@args"));
 
-    args_len = mrb_ary_len(mrb, types);
+    args_len = RARRAY_LEN(types);
 
     if(argc != args_len) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for %S)",

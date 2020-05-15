@@ -55,7 +55,7 @@ mrb_fiddle_closure_callback(ffi_cif *cif, void *resp, void **args, void *ctx)
     mrb_state *mrb      = ((fiddle_closure *)(DATA_PTR(self)))->mrb;
     mrb_value rbargs    = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@args"));
     mrb_value ctype     = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@ctype"));
-    mrb_int   argc      = mrb_ary_len(mrb, rbargs);
+    mrb_int   argc      = RARRAY_LEN(rbargs);
     mrb_value params    = mrb_ary_new_capa(mrb, argc);
     mrb_value ret;
 
@@ -192,7 +192,7 @@ mrb_fiddle_closure_initialize(mrb_state *mrb, mrb_value self)
 
     //Check_Type(args, T_ARRAY);
 
-    argc = mrb_ary_len(mrb, args);
+    argc = RARRAY_LEN(args);
 
     cl->argv = (ffi_type **)mrb_calloc(mrb, argc + 1, sizeof(ffi_type *));
 
