@@ -77,8 +77,8 @@ module Fiddle
         else
           begin
             Fiddle.dlopen(lib)
-          rescue DLError
-            raise(DLError, "can't load #{lib}")
+          rescue DLError => e
+            raise(DLError, "can't load #{lib}\n#{e.message}")
           end
         end
       }.flatten()
