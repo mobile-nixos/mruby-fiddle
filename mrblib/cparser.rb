@@ -166,7 +166,7 @@ module Fiddle
         if( tymap[ty] )
           return parse_ctype(tymap[ty], tymap)
         else
-          raise(DLError, "unknown type: #{ty}")
+          raise(DLError, "unknown type: '#{ty}'")
         end
       end
     end

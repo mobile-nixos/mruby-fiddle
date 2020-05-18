@@ -118,7 +118,7 @@ module Fiddle
         when TYPE_VOIDP
           return SIZEOF_VOIDP
         else
-          raise(DLError, "unknown type: #{ty}")
+          raise(DLError, "unknown type: '#{ty}'")
         end
       when Class
         if( ty.instance_methods().include?(:to_ptr) )
