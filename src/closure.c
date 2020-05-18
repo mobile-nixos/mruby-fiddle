@@ -233,6 +233,10 @@ mrb_fiddle_closure_initialize(mrb_state *mrb, mrb_value self)
     if (FFI_OK != result)
     	mrb_raisef(mrb, E_RUNTIME_ERROR, "error prepping closure %S", mrb_fixnum_value(result));
 
+	// Keep this from being collected
+	// FIXME: we're not unregistering!! This is leaky
+	mrb_gc_register(mrb, self);
+
     return self;
 }
 
