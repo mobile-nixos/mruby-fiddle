@@ -3,10 +3,19 @@ MRuby::Gem::Specification.new('mruby-fiddle') do |spec|
   spec.author  = 'Xiao peng'
 
   # Add compile flags
-  spec.cc.flags << '-g -DHAVE_DLFCN_H -DHAVE_DLERROR -DUSE_FFI_CLOSURE_ALLOC' #-DMEMORY_TRACE -DMEMORY_INFO
+  spec.cc.flags << [
+    #'-g',
+    '-DHAVE_DLFCN_H',
+    '-DHAVE_DLERROR',
+    '-DUSE_FFI_CLOSURE_ALLOC',
+    #'-DMEMORY_TRACE',
+    #'-DMEMORY_INFO',
+  ].join(" ")
 
   # Add cflags to all
-  spec.mruby.cc.flags << '-g'
+  spec.mruby.cc.flags << [
+    #'-g'
+  ].join(" ")
 
   # Add libraries
   spec.linker.libraries << ['dl', 'ffi']
