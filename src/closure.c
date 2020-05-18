@@ -30,6 +30,11 @@ typedef struct {
 # define USE_FFI_CLOSURE_ALLOC 1
 #endif
 
+#if USE_FFI_CLOSURE_ALLOC
+#else
+#include <sys/mman.h>
+#endif
+
 static void
 fiddle_closure_dealloc(mrb_state *mrb, void * ptr)
 {
