@@ -15,7 +15,15 @@ module Fiddle
     }
 
     PACK_MAP = {
-      TYPE_VOIDP => "q",
+      TYPE_VOIDP =>
+        case SIZEOF_VOIDP
+        when SIZEOF_LONG
+            "l"
+        when SIZEOF_LONG_LONG
+            "q"
+        else
+          raise(RuntimeError, "sizeof(void*)?")
+        end,
       TYPE_CHAR  => "c",
       TYPE_SHORT => "s!",
       TYPE_INT   => "l!",
